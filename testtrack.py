@@ -106,7 +106,9 @@ if __name__ == '__main__':
         ok, bbox = tracker.update(frame)
 
         bbox_centers_y.append((bbox[1] + round(bbox[3] / 2)))
-        delta.append(bbox_centers_y[-1]-bbox_centers_y[-2])
+
+        if not bbox_centers_y[-1] == bbox_centers_y[-2]: #evito "stazionamento" palla
+            delta.append(bbox_centers_y[-1]-bbox_centers_y[-2])
 
         if len(delta) > 1:
             if delta[1] < 0 and (delta[1]*delta[0]) < 0:
@@ -150,7 +152,7 @@ if __name__ == '__main__':
 
         cv2.putText(frame,
                     "Bounce : " + str(int(bounce)),
-                    (100,80),
+                    (100,300),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.75,
                     (50, 170, 50),
