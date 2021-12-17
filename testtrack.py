@@ -1,6 +1,6 @@
 import cv2
 import time
-
+import collections
 
 def log(msg):
     print(f'[{time.time()}]: {msg}')
@@ -9,7 +9,7 @@ def log(msg):
 if __name__ == '__main__':
 
     tracker_types = ['BOOSTING', 'MIL', 'KCF', 'TLD', 'MEDIANFLOW', 'GOTURN', 'MOSSE', 'CSRT']
-    tracker_type = tracker_types[0]
+    tracker_type = tracker_types[1]
     #mil ok
     #boosting insommina
     #medianflow veloce, attenzione però
@@ -88,6 +88,13 @@ if __name__ == '__main__':
 
     ok = tracker.init(orig_frame, bbox)
 
+    bounce = 0
+    bbox_centers = []
+    bbox_centers_y = []
+    delta = collections.deque(bbox_centers_y,2)
+
+    bbox_centers_y.append((bbox[1] + round(bbox[3] / 2)))
+
     while True:
         ok, frame = video.read()
         if not ok:
@@ -97,6 +104,14 @@ if __name__ == '__main__':
         timer = cv2.getTickCount()
 
         ok, bbox = tracker.update(frame)
+
+        bbox_centers_y.append((bbox[1] + round(bbox[3] / 2)))
+        delta.append(bbox_centers_y[-1]-bbox_centers_y[-2])
+
+        if len(delta) > 1:
+            if delta[1] < 0 and (delta[1]*delta[0]) < 0:
+                # delta < 0 : risalita, (delta[1]*delta[0]) < 0 : cambio di segno
+                bounce += 1
 
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
@@ -128,6 +143,14 @@ if __name__ == '__main__':
         cv2.putText(frame,
                     "FPS : " + str(int(fps)),
                     (100, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.75,
+                    (50, 170, 50),
+                    2)
+
+        cv2.putText(frame,
+                    "Bounce : " + str(int(bounce)),
+                    (100,80),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.75,
                     (50, 170, 50),
