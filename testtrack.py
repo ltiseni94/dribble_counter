@@ -1,8 +1,12 @@
 import cv2
 import time
+import numpy as np
 from collections import deque
 from optparse import OptionParser
 
+
+protoFile = './pose/mpi/pose_deploy_linevec_faster_4_stages.prototxt'
+weightsFile = './pose/mpi/pose_iter_160000.caffemodel'
 
 def log(msg):
     print(f'[{time.strftime("%H:%M:%S")}]: {msg}')
@@ -12,22 +16,55 @@ def is_bounce(prev, actual):
     return 1 if actual < 0 and prev*actual < 0 else 0
 
 
-def diff_queue(q: deque):
-    diff = []
-    for i in range(len(q)-1):
-        diff.append(q[i+1] - q[i])
-    return diff
-
-
 def luca_count(q: deque, box: tuple):
-    prev_avg = sum(diff_queue(q))
+    prev_avg = sum(np.diff(q))
     q.append(box[1] + box[3]/2)
-    new_avg = sum(diff_queue(q))
+    new_avg = sum(np.diff(q))
     return is_bounce(prev_avg, new_avg)
 
 
-if __name__ == '__main__':
+def update_dnn(network: cv2.dnn_Net, img: np.ndarray, wid: int, heig: int):
 
+    network_input_blob = cv2.dnn.blobFromImage(image=img,
+                                               scalefactor=1.0/255,
+                                               size=(wid, heig),
+                                               mean=(0, 0, 0),
+                                               swapRB=False,
+                                               crop=False)
+    network.setInput(network_input_blob)
+    network_output = network.forward()
+    n_frames, n_points, h, w = network_output.shape[:]
+
+    key_points = []
+
+    for i in range(15):
+        prob_map = network_output[0, i, :, :]
+        min_val, prob, min_loc, point = cv2.minMaxLoc(prob_map)
+
+        kp = (int(wid * point[0] / w), int(heig * point[1] / h))
+
+        if prob > 0.7:
+            cv2.circle(img=img,
+                       center=kp,
+                       radius=2,
+                       color=(0, 255, 255),
+                       thickness=-1,
+                       lineType=cv2.FILLED)
+
+            cv2.putText(img=img,
+                        text=f'{i}',
+                        org=kp,
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.2,
+                        color=(0, 0, 255),
+                        thickness=1,
+                        lineType=cv2.LINE_AA)
+            key_points.append(kp)
+
+    return img, key_points
+
+
+if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option('-t', '--tracker', action='store', dest='tracker', default='MIL',
                       help='Choose tracker type among: "BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW",'
@@ -68,11 +105,18 @@ if __name__ == '__main__':
     else:
         tracker = cv2.TrackerMIL_create()
 
+    net: cv2.dnn_Net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
+
     video = cv2.VideoCapture('./resources/kaka_cut.mp4')
 
     if not video.isOpened():
         log('Could not open video, exiting')
         exit(-1)
+
+    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    log(f'Cap size: ({width}, {height})')
 
     frame_read, frame = video.read()
     if not frame_read:
@@ -81,8 +125,9 @@ if __name__ == '__main__':
 
     cv2.namedWindow('first_frame', 1)
 
-    orig_frame = frame.copy()
+    frame, key_points = update_dnn(net, frame, width, height)
 
+    orig_frame = frame.copy()
     rectangle_corners = []
     cnt = 0
 
@@ -108,8 +153,8 @@ if __name__ == '__main__':
         cv2.imshow("first_frame", frame)
         k = cv2.waitKey(1) & 0xff
         if k == 27:
-            cv2.destroyAllWindows()
             break
+    cv2.destroyAllWindows()
 
     x_vals = (rectangle_corners[0][0], rectangle_corners[1][0])
     y_vals = (rectangle_corners[0][1], rectangle_corners[1][1])
@@ -119,10 +164,10 @@ if __name__ == '__main__':
 
     tracker_ok = tracker.init(orig_frame, bbox)
 
-    bounce = 0
+    tommaso_bounce = 0
     luca_bounce = 0
     luca_queue = deque([bbox[1]+bbox[3]/2]*5, 5)
-    bbox_centers = []
+
     bbox_centers_y = []
     delta = deque(bbox_centers_y, 2)
 
@@ -136,32 +181,31 @@ if __name__ == '__main__':
             break
         num_iter += 1
 
+        # updating method + fps calculation
         timer = cv2.getTickCount()
         tracker_ok, bbox = tracker.update(frame)
-
-        # Calculate Frames per second (FPS)
+        # frame, key_points = update_dnn(net, frame, width, height)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
 
-        # Draw bounding box
         if tracker_ok:
-            # Tracking success
+            # Draw bounding box
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
             cv2.rectangle(frame, p1, p2, (255, 0, 0), 2, 1)
 
+            # Luca's method for bounce detection
             luca_bounce += luca_count(luca_queue, bbox)
 
+            # Tommaso's method for bounce detection
             bbox_centers_y.append((bbox[1] + round(bbox[3] / 2)))
-
             if not bbox_centers_y[-1] == bbox_centers_y[-2]:  # evito "stazionamento" palla
                 delta.append(bbox_centers_y[-1] - bbox_centers_y[-2])
-
             if len(delta) > 1:
                 if delta[1] < 0 and (delta[1] * delta[0]) < 0:
                     # delta < 0 : risalita, (delta[1]*delta[0]) < 0 : cambio di segno
-                    bounce += 1
+                    tommaso_bounce += 1
+
         else:
-            # Tracking failure
             cv2.putText(frame,
                         "Tracking failure detected",
                         (100, 80),
@@ -170,6 +214,7 @@ if __name__ == '__main__':
                         (0, 0, 255),
                         2)
 
+        # Write tracker type
         cv2.putText(frame,
                     f'{tracker_type} Tracker',
                     (100, 20),
@@ -178,6 +223,7 @@ if __name__ == '__main__':
                     (50, 170, 50),
                     2)
 
+        # Print FPS
         cv2.putText(frame,
                     f"FPS: {fps:.2f}",
                     (100, 50),
@@ -186,14 +232,16 @@ if __name__ == '__main__':
                     (50, 170, 50),
                     2)
 
+        # Print Tommaso's bounce
         cv2.putText(frame,
-                    f"Bounce: {bounce}",
+                    f"Bounce: {tommaso_bounce}",
                     (100, 300),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.75,
                     (50, 170, 50),
                     2)
 
+        # Print Luca's bounce
         cv2.putText(frame,
                     f"Luca's bounce: {luca_bounce}",
                     (100, 200),
@@ -202,9 +250,10 @@ if __name__ == '__main__':
                     (50, 170, 50),
                     2)
 
-        cv2.imshow("Kakà", frame)
+        # Show image
+        cv2.imshow("Kaka", frame)
         k = cv2.waitKey(1) & 0xff
         if k == 27:
             break
 
-    log(f'Processed {num_iter} frames')
+    log(f'Processed {num_iter} frames. Bounces: {luca_bounce}')
