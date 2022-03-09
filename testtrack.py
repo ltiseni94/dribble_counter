@@ -112,7 +112,8 @@ if __name__ == '__main__':
 
     # net: cv2.dnn_Net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
 
-    video = cv2.VideoCapture('./resources/kaka_cut.mp4')
+    #video = cv2.VideoCapture('./resources/kaka_cut.mp4')
+    video = cv2.VideoCapture('./resources/marcello.mp4')
 
     if not video.isOpened():
         log('Could not open video, exiting')
