@@ -15,6 +15,8 @@ def log(msg):
 
 
 def is_bounce(prev, actual):
+    if prev == 0:
+        prev = 0.25
     return 1 if actual < 0 and prev*actual < -5 else 0
 
 
