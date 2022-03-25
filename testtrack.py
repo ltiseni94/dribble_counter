@@ -8,8 +8,6 @@ from optparse import OptionParser
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
-# protoFile = './pose/mpi/pose_deploy_linevec_faster_4_stages.prototxt'
-# weightsFile = './pose/mpi/pose_iter_160000.caffemodel'
 
 
 def log(msg):
@@ -17,7 +15,7 @@ def log(msg):
 
 
 def is_bounce(prev, actual):
-    return 1 if actual < 0 and prev*actual < 0 else 0
+    return 1 if actual < 0 and prev*actual < -5 else 0
 
 
 def luca_count(q: deque, box: tuple):
@@ -26,47 +24,6 @@ def luca_count(q: deque, box: tuple):
     new_avg = sum(np.diff(q))
     log(f'{new_avg} - {prev_avg} - {is_bounce(prev_avg, new_avg)}')
     return is_bounce(prev_avg, new_avg)
-
-
-def update_dnn(network: cv2.dnn_Net, img: np.ndarray, wid: int, heig: int):
-
-    network_input_blob = cv2.dnn.blobFromImage(image=img,
-                                               scalefactor=1.0/255,
-                                               size=(wid, heig),
-                                               mean=(0, 0, 0),
-                                               swapRB=False,
-                                               crop=False)
-    network.setInput(network_input_blob)
-    network_output = network.forward()
-    n_frames, n_points, h, w = network_output.shape[:]
-
-    key_points = []
-
-    for i in range(15):
-        prob_map = network_output[0, i, :, :]
-        min_val, prob, min_loc, point = cv2.minMaxLoc(prob_map)
-
-        kp = (int(wid * point[0] / w), int(heig * point[1] / h))
-
-        if prob > 0.7:
-            cv2.circle(img=img,
-                       center=kp,
-                       radius=2,
-                       color=(0, 255, 255),
-                       thickness=-1,
-                       lineType=cv2.FILLED)
-
-            cv2.putText(img=img,
-                        text=f'{i}',
-                        org=kp,
-                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.2,
-                        color=(0, 0, 255),
-                        thickness=1,
-                        lineType=cv2.LINE_AA)
-            key_points.append(kp)
-
-    return img, key_points
 
 
 if __name__ == '__main__':
@@ -83,8 +40,8 @@ if __name__ == '__main__':
     tracker_type = opts.tracker
 
     if tracker_type not in tracker_types:
-        log(f'Requested tracker {opts.tracker} is not available. Will default to "MIL"')
-        tracker_type = "MIL"
+        log(f'Requested tracker {opts.tracker} is not available. Will default to "CSRT"')
+        tracker_type = "CSRT"
 
     # mil
     # boosting insommina
@@ -110,9 +67,7 @@ if __name__ == '__main__':
     else:
         tracker = cv2.TrackerMIL_create()
 
-    # net: cv2.dnn_Net = cv2.dnn.readNetFromCaffe(protoFile, weightsFile)
-
-    #video = cv2.VideoCapture('./resources/kaka_cut.mp4')
+    # video = cv2.VideoCapture('./resources/kaka_cut.mp4')
     video = cv2.VideoCapture('./resources/marcello.mp4')
 
     if not video.isOpened():
@@ -128,10 +83,9 @@ if __name__ == '__main__':
     if not frame_read:
         log('Could not read frame, exiting')
         exit(-2)
+    frame = cv2.resize(frame, (360, 640))
 
     cv2.namedWindow('first_frame', 1)
-
-    # frame, key_points = update_dnn(net, frame, width, height)
 
     orig_frame = frame.copy()
     rectangle_corners = []
@@ -191,6 +145,7 @@ if __name__ == '__main__':
                 break
             num_iter += 1
 
+            frame = cv2.resize(frame, (360, 640))
             # updating method + fps calculation
             timer = cv2.getTickCount()
             tracker_ok, bbox = tracker.update(frame)
@@ -214,9 +169,6 @@ if __name__ == '__main__':
                 cv2.rectangle(frame, p1, p2, (255, 0, 0), 2, 1)
 
                 # Luca's method for bounce detection
-                # bounce = luca_count(luca_queue, bbox)
-                # if bounce:
-                #     frame, key_points = update_dnn(net, frame, width, height)
                 luca_bounce += luca_count(luca_queue, bbox)
 
                 # Tommaso's method for bounce detection
