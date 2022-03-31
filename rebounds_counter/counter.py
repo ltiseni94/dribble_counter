@@ -10,15 +10,6 @@ import numpy as np
 LandmarkEnum = mp.solutions.pose.PoseLandmark
 
 
-class Rebounds(NamedTuple):
-    ground: int = 0
-    r_ft: int = 0
-    l_ft: int = 0
-    r_hip: int = 0
-    l_hip: int = 0
-    head: int = 0
-
-
 class ReboundCounter:
     __slots__ = (
         '_queue_size',
