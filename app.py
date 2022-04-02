@@ -49,6 +49,27 @@ def parse_args():
                         help='Stop frame for a second when a bounce is detected')
     return parser.parse_args()
 
+def find_ball_HSV(min_h = 250, max_h = 350):
+    global frame
+    global bbox
+    frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    ker = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
+
+    # Mask by hue tresholding
+    if min_h > max_h:
+        mask = cv2.bitwise_not(cv2.inRange(frame_hsv[:, :, 0], max_h, min_h))
+    else:
+        mask = cv2.inRange(frame_hsv[:, :, 0], min_h, max_h)
+
+    mask = cv2.erode(mask, ker)
+#    nonZeroRows = [i for i in range(mask.shape[0]) for j in range(mask.shape[1]) if mask[i, j] != 0]
+#    nonZeroCols = [j for i in range(mask.shape[0]) for j in range(mask.shape[1]) if mask[i, j] != 0]
+    ball = [[i, j] for i in range(frame.shape[0]) for j in range(frame.shape[1]) if mask[i, j] != 0]
+    centerRow = np.median(np.array(ball)[:, 0])
+    centerCol = np.median(np.array(ball)[:, 1])
+    cv2.circle(mask, (int(centerCol), int(centerRow)), 5, 128)
+    cv2.imshow('Mask', mask)
+    cv2.waitKey(1)
 
 def select_tracker(tracker_type: str):
     if tracker_type == 'BOOSTING':
