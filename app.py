@@ -4,6 +4,7 @@ import mediapipe as mp
 import csv
 from argparse import ArgumentParser
 from utils import FpsCounter, log, draw_bbox, calc_accuracy, create_bounding_box
+from custom_trackers.hue_tracker import HueTracker
 from rebounds_counter.counter import ReboundCounter
 
 mp_drawing = mp.solutions.drawing_utils
@@ -49,27 +50,6 @@ def parse_args():
                         help='Stop frame for a second when a bounce is detected')
     return parser.parse_args()
 
-def find_ball_HSV(min_h = 250, max_h = 350):
-    global frame
-    global bbox
-    frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    ker = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
-
-    # Mask by hue tresholding
-    if min_h > max_h:
-        mask = cv2.bitwise_not(cv2.inRange(frame_hsv[:, :, 0], max_h, min_h))
-    else:
-        mask = cv2.inRange(frame_hsv[:, :, 0], min_h, max_h)
-
-    mask = cv2.erode(mask, ker)
-#    nonZeroRows = [i for i in range(mask.shape[0]) for j in range(mask.shape[1]) if mask[i, j] != 0]
-#    nonZeroCols = [j for i in range(mask.shape[0]) for j in range(mask.shape[1]) if mask[i, j] != 0]
-    ball = [[i, j] for i in range(frame.shape[0]) for j in range(frame.shape[1]) if mask[i, j] != 0]
-    centerRow = np.median(np.array(ball)[:, 0])
-    centerCol = np.median(np.array(ball)[:, 1])
-    cv2.circle(mask, (int(centerCol), int(centerRow)), 5, 128)
-    cv2.imshow('Mask', mask)
-    cv2.waitKey(1)
 
 def select_tracker(tracker_type: str):
     if tracker_type == 'BOOSTING':
@@ -88,6 +68,8 @@ def select_tracker(tracker_type: str):
         t = cv2.legacy.TrackerMOSSE_create()
     elif tracker_type == 'CSRT':
         t = cv2.TrackerCSRT_create()
+    elif tracker_type == 'HUE':
+        t = HueTracker()
     else:
         t = cv2.TrackerMIL_create()
     return t
@@ -97,7 +79,7 @@ def main():
     args = parse_args()
     tracker = select_tracker(args.tracker)
 
-    real_values_list = None
+    real_values_list = []
 
     if type(args.source) is str:
         label_file = args.source.rstrip(args.source.split('.')[-1]) + 'csv'
@@ -105,9 +87,8 @@ def main():
             with open(label_file) as file:
                 reader = csv.reader(file)
                 for row in reader:
-                    real_values_list = row
-                for i, val in enumerate(real_values_list):
-                    real_values_list[i] = int(val)
+                    for val in row:
+                        real_values_list.append(int(val))
         except:
             log('Could not process label file and create real_values_list')
 
@@ -238,7 +219,7 @@ def main():
             log(f'Accuracy report:\n'
                 f'Ground th indexes: {real_values_list}\n'
                 f'Predicted indexes: {predictions_list}\n'
-                f'Accuracy: {calc_accuracy(predictions_list, real_values_list) * 100:.2f}')
+                f'Accuracy: {calc_accuracy(predictions_list, real_values_list) * 100:.1f}%')
 
 
 if __name__ == '__main__':
