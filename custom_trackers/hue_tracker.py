@@ -20,13 +20,6 @@ class HueTracker:
         self.bbox_width = bounding_box[2]
         self.bbox_height = bounding_box[3]
 
-
-    def update(self, image: np.ndarray):
-
-        #idea: cerco hue medio della bbox e setto un'intervallo di colori
-        #lo tengo come riferimento, allargo la bbox e creo una maschera con quel range di colori
-        #trovo il centro della palla nella bbox allargata e restringo la bbox intorno alla palla
-
         #1: crop bbox
         crop_bbox = image[self.bbox[1]:self.bbox[1]+self.bbox[3], self.bbox[0]:self.bbox[0]+self.bbox[2], :]
         #2: HUE
@@ -35,12 +28,15 @@ class HueTracker:
         self.min_h = self.mean_h - self.delta_h
         self.max_h = self.mean_h + self.delta_h
 
+
+    def update(self, image: np.ndarray):
         #3: crop bbox allargata
         crop_bbox_new = image[self.bbox[1] - round(self.bbox[3]/2): self.bbox[1] + self.bbox[3] + round(self.bbox[3]/2),
                self.bbox[0] - round(self.bbox[2]/2): self.bbox[0] + self.bbox[2] + round(self.bbox[2]/2), :]
+        if crop_bbox_new.size == 0:
+            crop_bbox_new = image[self.bbox[1]:self.bbox[1]+self.bbox[3], self.bbox[0]:self.bbox[0]+self.bbox[2], :]
 
         #4: maschera su nuovo crop
-        #problema: maschera vuota
         bbox_new_hsv = cv2.cvtColor(crop_bbox_new, cv2.COLOR_BGR2HSV)
         if self.min_h > self.max_h:
             mask = cv2.bitwise_not(cv2.inRange(bbox_new_hsv[:, :, 0], self.max_h/2, self.min_h/2))
