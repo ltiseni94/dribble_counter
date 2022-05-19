@@ -40,6 +40,7 @@ class HueTracker:
                self.bbox[0] - round(self.bbox[2]/2): self.bbox[0] + self.bbox[2] + round(self.bbox[2]/2), :]
 
         #4: maschera su nuovo crop
+        #problema: maschera vuota
         if self.min_h > self.max_h:
             mask = cv2.bitwise_not(cv2.inRange(crop_bbox_new[:, :, 0], self.max_h, self.min_h))
         else:
