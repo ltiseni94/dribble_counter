@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from utils import FpsCounter, log, draw_bbox, calc_accuracy, create_bounding_box
 from custom_trackers.hue_tracker import HueTracker
 from rebounds_counter.counter import ReboundCounter
+import numpy as np
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -16,7 +17,7 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument('-t', '--tracker', action='store', default='CSRT',
                         help='Choose tracker type among: "BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW",'
-                             ' "GOTURN", "MOSSE", "CSRT", "CUSTOM"')
+                             ' "GOTURN", "MOSSE", "CSRT", "HUE"')
     parser.add_argument('-b', '--bbox', action='store', default=None, type=tuple,
                         help='Specify the starting bounding box for the ball'
                              ' through command line')
