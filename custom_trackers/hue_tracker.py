@@ -41,10 +41,11 @@ class HueTracker:
 
         #4: maschera su nuovo crop
         #problema: maschera vuota
+        bbox_new_hsv = cv2.cvtColor(crop_bbox_new, cv2.COLOR_BGR2HSV)
         if self.min_h > self.max_h:
-            mask = cv2.bitwise_not(cv2.inRange(crop_bbox_new[:, :, 0], self.max_h, self.min_h))
+            mask = cv2.bitwise_not(cv2.inRange(bbox_new_hsv[:, :, 0], self.max_h/2, self.min_h/2))
         else:
-            mask = cv2.inRange(crop_bbox_new[:, :, 0], self.min_h, self.max_h)
+            mask = cv2.inRange(bbox_new_hsv[:, :, 0], self.min_h/2, self.max_h/2)
         mask = cv2.erode(mask, self.kernel)
 
         #5: centro palla
