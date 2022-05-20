@@ -110,7 +110,18 @@ class ReboundCounter:
     def get_score(self) -> int:
         score = 0
         for k, v in self.rebounds.items():
-            score = score + v
+            if k is 'ground':
+                score = score - v
+            elif k is 'r_ft':
+                score = score + v
+            elif k is 'l_ft':
+                score = score + v
+            elif k is 'r_hip':
+                score = score + 2 * v
+            elif k is 'l_hip':
+                score = score + 2 * v
+            elif k is 'head':
+                score = score + 4 * v
         return score
 
     def _is_bounce(self,
