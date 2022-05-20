@@ -75,7 +75,6 @@ def select_tracker(tracker_type: str):
         t = cv2.TrackerMIL_create()
     return t
 
-
 def main():
     args = parse_args()
     tracker = select_tracker(args.tracker)
@@ -196,6 +195,14 @@ def main():
             cv2.putText(frame,
                         f"Bounces: {reb.get_total()}",
                         (20, height-20),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.75,
+                        (255, 0, 0),
+                        2)
+            # Print score counter
+            cv2.putText(frame,
+                        f"Score: {reb.get_score()}",
+                        (220, height - 20),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.75,
                         (255, 0, 0),

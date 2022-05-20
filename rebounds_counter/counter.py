@@ -107,6 +107,12 @@ class ReboundCounter:
     def get_total(self) -> int:
         return sum(self.rebounds.values()) - self.rebounds['ground']
 
+    def get_score(self) -> int:
+        score = 0
+        for k, v in self.rebounds.items():
+            score = score + v
+        return score
+
     def _is_bounce(self,
                    prev: Union[int, float],
                    actual: Union[int, float]) -> bool:

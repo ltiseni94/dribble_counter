@@ -34,7 +34,7 @@ class HueTracker:
         ilowH = self.low_h
         ihighH = self.high_h
 
-        ilowS = 0#np.mean(bbox_hsv[:, :, 1]) - 20
+        ilowS = 0#np.mean(bbox_hsv[:, :, 1])
         ihighS = 255
 
         ilowV = 0#np.mean(bbox_hsv[:, :, 2]) - 20
