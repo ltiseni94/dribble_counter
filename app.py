@@ -74,6 +74,7 @@ def select_tracker(tracker_type: str):
         t = cv2.TrackerMIL_create()
     return t
 
+
 def main():
     args = parse_args()
     tracker = select_tracker(args.tracker)
