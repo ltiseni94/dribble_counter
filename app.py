@@ -6,7 +6,6 @@ from argparse import ArgumentParser
 from utils import FpsCounter, log, draw_bbox, calc_accuracy, create_bounding_box
 from custom_trackers.hue_tracker import HueTracker
 from rebounds_counter.counter import ReboundCounter
-import numpy as np
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles

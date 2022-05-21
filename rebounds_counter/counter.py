@@ -63,26 +63,32 @@ class ReboundCounter:
                  initial_mp_queue: Optional[list] = None,
                  lm_under_ball_threshold: int = -20,
                  ball_close_threshold: int = 80,):
+
         self._queue_size: int = queue_size
         self._min_speed: Union[int, float] = min_speed
         self._img_width: int = img_shape[0]
         self._img_height: int = img_shape[1]
+
         self.rebounds: Dict[str, int] = {}
         for label in self.label_converter:
             self.rebounds.update({label: 0})
+
         self._pos_queue: Deque[Tuple[Union[int, float], Union[int, float]]] = deque(
             [(int(initial_bbox[0] + initial_bbox[2]/2), int(initial_bbox[1] + initial_bbox[3]/2))] * queue_size,
             maxlen=queue_size
         )
+
         if initial_ball_queue is not None:
             self._pos_queue.clear()
             for item in initial_ball_queue:
                 self._pos_queue.append(item)
         self._mp_queue: Deque[NamedTuple] = deque([], maxlen=queue_size)
+
         if initial_mp_queue is not None:
             self._mp_queue.clear()
             for item in initial_mp_queue:
                 self._mp_queue.append(item)
+
         self._b_q_idxs: Tuple[Optional[int], Optional[int]] = ball_queue_indexes
         self._p_q_idxs: Tuple[Optional[int], Optional[int]] = pose_queue_indexes
         self._lm_under_ball_threshold: int = lm_under_ball_threshold
