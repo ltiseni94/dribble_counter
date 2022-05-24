@@ -2,6 +2,7 @@ import cv2
 import time
 import mediapipe as mp
 import csv
+from typing import Union
 from argparse import ArgumentParser
 from utils import FpsCounter, log, draw_bbox, calc_accuracy, create_bounding_box
 from custom_trackers.hue_tracker import HueTracker
@@ -92,7 +93,11 @@ def main():
         except:
             log('Could not process label file and create real_values_list')
 
-    video = cv2.VideoCapture(args.source)
+    source: Union[str, int] = args.source
+    if source.isnumeric():
+        source = int(source)
+
+    video = cv2.VideoCapture(source)
     if not video.isOpened():
         log('Could not open video, exiting')
         exit(-1)
@@ -100,6 +105,10 @@ def main():
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) // args.resize
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) // args.resize
     log(f'Cap size: ({width}, {height})')
+
+    if type(source) is int:
+        for _ in range(10):
+            res, frame = video.read()
 
     frame_read, frame = video.read()
     if not frame_read:
