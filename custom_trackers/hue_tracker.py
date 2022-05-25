@@ -68,8 +68,17 @@ class HueTracker:
 
     def update(self, image: np.ndarray):
         # 3: crop bbox allargata
-        crop_bbox_new = image[self.bbox[1] - round(self.bbox[3]/2): self.bbox[1] + self.bbox[3] + round(self.bbox[3]/2),
-               self.bbox[0] - round(self.bbox[2]/2): self.bbox[0] + self.bbox[2] + round(self.bbox[2]/2), :]
+        width_bbox = self.bbox[2]
+        heigth_bbox = self.bbox[3]
+        delta_width = round(self.bbox[2]/2)
+        delta_height = round(self.bbox[3]/2)
+
+        if delta_height < self.bbox[1] and delta_width < self.bbox[0]:
+            crop_bbox_new = image[self.bbox[1] - delta_height: self.bbox[1] + heigth_bbox + delta_height,
+               self.bbox[0] - delta_width: self.bbox[0] + width_bbox + delta_width, :]
+        else:
+            crop_bbox_new = image[self.bbox[1]: self.bbox[1] + heigth_bbox + delta_height,
+                            self.bbox[0]: self.bbox[0] + width_bbox + delta_width, :]
 
         if crop_bbox_new.size == 0:
             crop_bbox_new = image[self.bbox[1]:self.bbox[1]+self.bbox[3], self.bbox[0]:self.bbox[0]+self.bbox[2], :]
