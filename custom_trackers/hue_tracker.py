@@ -67,7 +67,6 @@ class HueTracker:
         return cv2.erode(mask, self.kernel)
 
     def update(self, image: np.ndarray):
-        # 3: crop bbox allargata
         width_bbox = self.bbox[2]
         heigth_bbox = self.bbox[3]
         delta_width = round(self.bbox[2]/2)
@@ -79,16 +78,12 @@ class HueTracker:
         else:
             crop_bbox_new = image[self.bbox[1]: self.bbox[1] + heigth_bbox + delta_height,
                             self.bbox[0]: self.bbox[0] + width_bbox + delta_width, :]
-
         if crop_bbox_new.size == 0:
             crop_bbox_new = image[self.bbox[1]:self.bbox[1]+self.bbox[3], self.bbox[0]:self.bbox[0]+self.bbox[2], :]
 
-        # 4: maschera su nuovo crop
         bbox_new_hsv = cv2.cvtColor(crop_bbox_new, cv2.COLOR_BGR2HSV)
-
         mask = self.create_mask(bbox_new_hsv)
 
-        # 5: centro palla
         ball_indexes = np.nonzero(mask)
         if len(ball_indexes[0]) < self.min_number_points:
             return False, None
@@ -98,10 +93,6 @@ class HueTracker:
         x_ball_image = x_ball_crop + self.bbox[0] - round(self.bbox[2]/2)
         y_ball_image = y_ball_crop + self.bbox[1] - round(self.bbox[3]/2)
 
-        # possibile raggio palla
-        # r_ball = (np.max(ball_indexes[1]).item() - np.min(ball_indexes[1]).item())/2
-
-        # 6: bbox aggiornata
         self.bbox = [
             int(x_ball_image - self.bbox_width/2),
             int(y_ball_image - self.bbox_height/2),
