@@ -21,8 +21,8 @@ class HueTracker:
         self.bbox = bounding_box
         self.bbox_width = bounding_box[2]
         self.bbox_height = bounding_box[3]
-        cv2.imshow('original frame', image)
-        cv2.waitKey(1)
+        #cv2.imshow('original frame', image)
+        #cv2.waitKey(1)
         hsv_frame = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         cv2.namedWindow('mask')
         cv2.createTrackbar('low_h', 'mask', 0, 179, nothing)
@@ -45,7 +45,9 @@ class HueTracker:
                 high_hsv
             )
             mask = self.create_mask(hsv_frame)
+            image_mask = cv2.bitwise_and(image, image, mask=mask)
             cv2.imshow('mask', mask)
+            cv2.imshow('frame AND mask', image_mask)
             k = cv2.waitKey(1)
             if k & 0xFF in (ord('q'), 27, ord('\n'), ord('\r')):
                 break
