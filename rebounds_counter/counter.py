@@ -123,11 +123,11 @@ class ReboundCounter:
             elif k == 'l_ft':
                 score += v
             elif k == 'r_hip':
-                score += 2 * v
+                score += 3 * v
             elif k == 'l_hip':
-                score += 2 * v
+                score += 3 * v
             elif k == 'head':
-                score += 4 * v
+                score += 5 * v
         return score
 
     def _is_bounce(self,
