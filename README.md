@@ -92,3 +92,4 @@ You should see this output:
                             min tracking confidence for mediapipe pose
       --pause, --pause-frame
                             Stop frame for a second when a bounce is detected
+      --record-output       Save output video in mp4 format
