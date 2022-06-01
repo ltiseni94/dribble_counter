@@ -20,7 +20,7 @@ of the body.
 
 Clone the repository:
     
-    $ git clone https://github.com/ltiseni94/digital_perception_project.git
+    $ git clone https://github.com/ltiseni94/dribble_counter.git
 
 Go into the folder and create the virtual environment:
     
