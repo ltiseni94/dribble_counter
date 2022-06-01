@@ -3,7 +3,7 @@ import numpy as np
 from typing import List, Optional, Tuple
 
 
-class HueTracker:
+class HsvTracker:
     def __init__(self, min_number_points: int = 15):
         """
         Build a Hue Tracker compliant to the openCV tracker API

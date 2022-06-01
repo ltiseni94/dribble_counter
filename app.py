@@ -5,7 +5,7 @@ import csv
 from typing import Union, Optional
 from argparse import ArgumentParser
 from utils import FpsCounter, log, draw_bbox, calc_accuracy, create_bounding_box
-from custom_trackers.hue_tracker import HueTracker
+from custom_trackers.hsv_tracker import HsvTracker
 from rebounds_counter.counter import ReboundCounter
 
 mp_drawing = mp.solutions.drawing_utils
@@ -20,7 +20,7 @@ def parse_args():
                                         "the app will detect the body segment with which the user perform the dribble")
     parser.add_argument('-t', '--tracker', action='store', default='CSRT',
                         help='Choose tracker type among: "BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW",'
-                             ' "GOTURN", "MOSSE", "CSRT", "HUE"')
+                             ' "GOTURN", "MOSSE", "CSRT", "HVS"')
     parser.add_argument('-b', '--bbox', action='store', default=None, type=tuple,
                         help='Specify the starting bounding box for the ball'
                              ' through command line')
@@ -74,8 +74,8 @@ def select_tracker(tracker_type: str):
         t = cv2.legacy.TrackerMOSSE_create()
     elif tracker_type == 'CSRT':
         t = cv2.TrackerCSRT_create()
-    elif tracker_type == 'HUE':
-        t = HueTracker()
+    elif tracker_type == 'HSV':
+        t = HsvTracker()
     else:
         t = cv2.TrackerMIL_create()
     return t
