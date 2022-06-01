@@ -14,7 +14,10 @@ mp_pose = mp.solutions.pose
 
 
 def parse_args():
-    parser = ArgumentParser()
+    parser = ArgumentParser(description="Dribble detector application. Open a video source (camera or a video file) "
+                                        "Draw a bounding box centered on the ball with which the user want to do dribbles. "
+                                        "Then the app will start counting dribbles. Using Pose tracking by MediaPipe, "
+                                        "the app will detect the body segment with which the user perform the dribble")
     parser.add_argument('-t', '--tracker', action='store', default='CSRT',
                         help='Choose tracker type among: "BOOSTING", "MIL", "KCF", "TLD", "MEDIANFLOW",'
                              ' "GOTURN", "MOSSE", "CSRT", "HUE"')
@@ -25,7 +28,7 @@ def parse_args():
                         default=5, type=int,
                         help='Queue size for average values calculation - filtering')
     parser.add_argument('-r', '--resize', '--resize-input', action='store',
-                        default=3, type=int,
+                        default=1, type=int,
                         help='Decrease size of video input by specified scale factor')
     parser.add_argument('-s', '--source', action='store', default='resources/marcello.mp4',
                         help='Video source. Specify a path to a video or a camera')
@@ -92,6 +95,8 @@ def main():
                         real_values_list.append(int(val))
         except:
             log('Could not process label file and create real_values_list')
+        if args.source == 'resources/marcello.mp4':
+            args.resize = 3
 
     source: Union[str, int] = args.source
     if source.isnumeric():
@@ -106,6 +111,8 @@ def main():
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) // args.resize
     log(f'Cap size: ({width}, {height})')
 
+    # If the source is a camera, open it and collect the first ten frames
+    # so that exposure is auto-adjusted by the camera software.
     if type(source) is int:
         for _ in range(10):
             res, frame = video.read()
