@@ -2,7 +2,7 @@ import cv2
 import time
 import mediapipe as mp
 import csv
-from typing import Union
+from typing import Union, Optional
 from argparse import ArgumentParser
 from utils import FpsCounter, log, draw_bbox, calc_accuracy, create_bounding_box
 from custom_trackers.hue_tracker import HueTracker
@@ -52,6 +52,8 @@ def parse_args():
                         help='min tracking confidence for mediapipe pose')
     parser.add_argument('--pause', '--pause-frame', action='store_true', default=False,
                         help='Stop frame for a second when a bounce is detected')
+    parser.add_argument('--record-output', action='store_true', default=False,
+                        help='Save output video in mp4 format')
     return parser.parse_args()
 
 
@@ -85,7 +87,8 @@ def main():
 
     real_values_list = []
 
-    if type(args.source) is str:
+    source: Union[str, int] = args.source
+    if not source.isnumeric():
         label_file = args.source.rstrip(args.source.split('.')[-1]) + 'csv'
         try:
             with open(label_file) as file:
@@ -97,9 +100,7 @@ def main():
             log('Could not process label file and create real_values_list')
         if args.source == 'resources/marcello.mp4':
             args.resize = 3
-
-    source: Union[str, int] = args.source
-    if source.isnumeric():
+    else:
         source = int(source)
 
     video = cv2.VideoCapture(source)
@@ -109,6 +110,7 @@ def main():
 
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) // args.resize
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) // args.resize
+    frame_fps = int(video.get(cv2.CAP_PROP_FPS))
     log(f'Cap size: ({width}, {height})')
 
     # If the source is a camera, open it and collect the first ten frames
@@ -124,7 +126,7 @@ def main():
     frame = cv2.resize(frame, (width, height))
 
     if args.bbox is None:
-        bbox = create_bounding_box(frame)
+        bbox = create_bounding_box(frame, args.record_output)
     else:
         bbox = args.bbox
         log(f'Input Bounding Box: {bbox}')
@@ -139,6 +141,10 @@ def main():
     )
 
     predictions_list = []
+
+    video_writer: Optional[cv2.VideoWriter] = None
+    if args.record_output:
+        video_writer = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), frame_fps, (width, height))
 
     with mp_pose.Pose(
             model_complexity=0,
@@ -229,10 +235,17 @@ def main():
             k = cv2.waitKey(1) & 0xff
             if k == 27:
                 break
+            if args.record_output:
+                video_writer.write(frame)
             if pause_frame:
+                if args.record_output:
+                    for _ in range(frame_fps - 1):
+                        video_writer.write(frame)
                 time.sleep(1.0)
                 pause_frame = False
 
+        video_writer.release()
+        video.release()
         log(f'Run report:\n'
             f'Processed {num_iter} frames\n'
             f'Total bounces: {reb.get_total()}\n')

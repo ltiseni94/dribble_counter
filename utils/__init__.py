@@ -64,7 +64,7 @@ def calc_accuracy(pred: List[Any], true: List[Any]) -> float:
     return res / len(true)
 
 
-def create_bounding_box(frame) -> Tuple[int, int, int, int]:
+def create_bounding_box(frame, record_flag: bool) -> Tuple[int, int, int, int]:
     """
     Open an interactive session in which the user can draw the start bounding box
 
@@ -75,6 +75,10 @@ def create_bounding_box(frame) -> Tuple[int, int, int, int]:
     cv2.namedWindow('first_frame', 1)
     rectangle_corners = []
     cnt = 0
+
+    video_writer: Optional[cv2.VideoWriter] = None
+    if record_flag:
+        video_writer = cv2.VideoWriter('bounding.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 60, (frame.shape[1], frame.shape[0]))
 
     def mouse_callback(event, x, y, flags, param):
         """
@@ -102,6 +106,9 @@ def create_bounding_box(frame) -> Tuple[int, int, int, int]:
         k = cv2.waitKey(1) & 0xff
         if k == 27:
             break
+        if record_flag:
+            video_writer.write(frame)
+        time.sleep(1 / 60)
     cv2.destroyAllWindows()
 
     x_vals = (rectangle_corners[0][0], rectangle_corners[1][0])
