@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from typing import List, Optional, Tuple
+from .utils import logger
 
 
 class HsvTracker:
@@ -34,7 +35,7 @@ class HsvTracker:
         hsv_frame = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         # Empty callback for trackbars
-        def nothing(x):
+        def nothing(_):
             return
 
         cv2.namedWindow('mask')
@@ -93,7 +94,10 @@ class HsvTracker:
             dummy_low_hsv[0] = 0
             dummy_high_hsv = self.high_hsv.copy()
             dummy_high_hsv[0] = 179
-            mask = cv2.bitwise_or(cv2.inRange(frame, dummy_low_hsv, self.high_hsv), cv2.inRange(frame, self.low_hsv, dummy_high_hsv))
+            mask = cv2.bitwise_or(
+                cv2.inRange(frame, dummy_low_hsv, self.high_hsv),
+                cv2.inRange(frame, self.low_hsv, dummy_high_hsv)
+            )
         else:
             mask = cv2.inRange(frame, self.low_hsv, self.high_hsv)
         return cv2.erode(mask, self.kernel)
@@ -125,8 +129,7 @@ class HsvTracker:
                 :,
             ]
         if crop_bbox_new.size == 0:
-            print('Something bad here')
-            print(f'{self.bbox}')
+            logger.warn(f'New cropped image is empty. Using old one: {self.bbox}')
             crop_bbox_new = image[
                 self.bbox[1]: self.bbox[1] + self.bbox[3],
                 self.bbox[0]: self.bbox[0] + self.bbox[2],

@@ -10,9 +10,9 @@ of the body.
 
 ## Trackers
 
-- Compatible with openCV trackers
-- Our custom trackers are available
-- You can use your custom tracker compliant with the openCV tracking API
+- Can use any openCV trackers
+- Our custom HSV tracker is available
+- Supports your custom tracker if compliant with the openCV tracking API
 
 ## How to install it
 

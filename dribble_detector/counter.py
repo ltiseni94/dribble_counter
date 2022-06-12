@@ -1,10 +1,10 @@
-import time
 from typing import NamedTuple, Tuple, Deque, Union, Dict, List, Optional
 from collections import deque
 from itertools import islice
 from operator import itemgetter
 import mediapipe as mp
 import numpy as np
+from .utils import logger
 
 
 LandmarkEnum = mp.solutions.pose.PoseLandmark
@@ -120,16 +120,6 @@ class ReboundCounter:
     def __str__(self):
         return self.__repr__()
 
-    @staticmethod
-    def log(msg: str) -> None:
-        """
-        Log function for ReboundCounter
-
-        :param msg: msg to be printed
-        :return: None
-        """
-        print(f'[{time.strftime("%H:%M:%S")}][ReboundCounter]: {msg}')
-
     def get_total(self) -> int:
         """
         Get total number of bounces
@@ -164,7 +154,7 @@ class ReboundCounter:
         return True if actual < 0 and prev*actual < -self._min_speed else False
 
     def update(self,
-               bbox: Tuple[int, int, int, int],
+               bbox: Union[Tuple[int, int, int, int], List[int]],
                mp_results: NamedTuple) -> Tuple[bool, Optional[str]]:
         """
         Perform algorithm step update
@@ -175,6 +165,8 @@ class ReboundCounter:
             bounce: True if a bounce is detected, False otherwise
             label: Dribble label if a bounce is detected, None otherwise
         """
+        if len(bbox) != 4:
+            raise ValueError(f'Input bbox {bbox} does not have expected size 4')
 
         self._mp_queue.append(mp_results)
 
@@ -188,9 +180,9 @@ class ReboundCounter:
             label = self._predict_rebound_label()
             self.rebounds[label] += 1
             if label != 'ground':
-                self.log(f'Detected dribble with {self.label_dict[label]}')
+                logger.info(f'Detected dribble with {self.label_dict[label]}')
             else:
-                self.log(f'Ball fell on the ground')
+                logger.info(f'Ball fell on the ground')
         return bounce, label
 
     def _get_landmark_coord(self,
