@@ -24,7 +24,7 @@ Clone the repository:
 
 Go into the folder and create the virtual environment:
     
-    $ cd digital_perception_project
+    $ cd dribble_counter
     $ python3 -m venv venv
 
 Source virtual environment and install dependencies:
