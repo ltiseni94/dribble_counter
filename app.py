@@ -255,7 +255,8 @@ def main():
 
         logger.info(f'Run report:\n'
                     f'Processed {num_iter} frames\n'
-                    f'Total bounces: {reb.get_total()}\n')
+                    f'Total bounces: {reb.get_total()}\n'
+                    f'Average FPS: {sum(fps_counter.values)/len(fps_counter.values):.2f}')
 
         logger.info(f'{reb}\n')
 

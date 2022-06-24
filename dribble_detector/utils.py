@@ -2,7 +2,8 @@ import cv2
 import time
 import logging
 import numpy as np
-from typing import List, Any, Tuple, Optional
+from typing import List, Any, Tuple, Optional, Deque, Union
+from collections import deque
 
 
 class FpsCounter:
@@ -10,7 +11,8 @@ class FpsCounter:
         """
         Build a FPS Counter
         """
-        self.timer = cv2.getTickCount()
+        self.timer: int = cv2.getTickCount()
+        self.values: Deque[float] = deque([], maxlen=1000)
 
     def start(self) -> None:
         self.timer = cv2.getTickCount()
@@ -24,6 +26,7 @@ class FpsCounter:
         """
         new_val = cv2.getTickCount()
         res = cv2.getTickFrequency() / (new_val - self.timer)
+        self.values.append(res)
         return res
 
 
@@ -55,7 +58,15 @@ logger = logging.getLogger()
 logger.addFilter(ContextFilter())
 
 
-def draw_bbox(img, bbox):
+def xyxy2xywh(bbox: Tuple[Union[int, float], ...]) -> Tuple[Union[int, float], ...]:
+    x_min = min([bbox[0], bbox[2]])
+    x_max = max([bbox[0], bbox[2]])
+    y_min = min([bbox[1], bbox[3]])
+    y_max = max([bbox[1], bbox[3]])
+    return x_min, y_min, x_max - x_min, y_max - y_min
+
+
+def draw_bbox(img: np.ndarray, bbox: Tuple[Union[int, float]]):
     """
     Draw a bounding box on a cv2 image.
 
@@ -65,7 +76,8 @@ def draw_bbox(img, bbox):
     """
     p1 = (int(bbox[0]), int(bbox[1]))
     p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-    cv2.rectangle(img, p1, p2, (255, 0, 0), 2, 1)
+    cv2.rectangle(img, p1, p2, (0, 0, 0), 4, 1)
+    cv2.rectangle(img, p1, p2, (255, 255, 255), 2, 1)
     return img
 
 
@@ -140,7 +152,12 @@ def create_bounding_box(
             cv2.rectangle(frame,
                           pt1=rectangle_corners[0],
                           pt2=(x, y),
-                          color=(255, 0, 0),
+                          color=(0, 0, 0),
+                          thickness=4)
+            cv2.rectangle(frame,
+                          pt1=rectangle_corners[0],
+                          pt2=(x, y),
+                          color=(255, 255, 255),
                           thickness=2)
 
     cv2.setMouseCallback(window_name, mouse_callback)
