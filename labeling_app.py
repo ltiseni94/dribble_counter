@@ -41,7 +41,7 @@ def main(video: str, read: bool = False):
     bounding_boxes: List[Optional[Tuple[Union[int, float], ...]]] = [None] * len(frames)
     try:
         with open(f'{video[:-4]}_label.csv', 'r') as f:
-            csv_reader = csv.DictReader(f, label_fields)
+            csv_reader = csv.DictReader(f)
             for row in csv_reader:
                 idx = int(row['frame'])
                 x1 = float(row['x1'])
