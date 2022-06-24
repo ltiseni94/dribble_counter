@@ -105,8 +105,8 @@ def main(video: str, read: bool = False):
             f'q, Q, esc: quit\n'
             f's, S, enter: save & quit (only if not in read mode)\n'
             f'mouse left click: add a point for a new bbox\n'
-            f'mouse right click: cancel previously added point\n'
-            f'mouse right double click: cancel stored bbox\n'
+            f'mouse left click + shift: cancel previously added point\n'
+            f'mouse left click + ctrl: cancel stored bbox\n'
         )
 
     draw_image()
