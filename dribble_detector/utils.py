@@ -9,7 +9,7 @@ from collections import deque
 class FpsCounter:
     def __init__(self):
         """
-        Build a FPS Counter
+        Build an FPS Counter
         """
         self.timer: int = cv2.getTickCount()
         self.values: Deque[float] = deque([], maxlen=1000)
@@ -58,7 +58,7 @@ logger = logging.getLogger()
 logger.addFilter(ContextFilter())
 
 
-def xyxy2xywh(bbox: Tuple[Union[int, float], ...]) -> Tuple[Union[int, float], ...]:
+def xyxy2xywh(bbox: Union[Tuple[int, ...], List[int]]) -> Tuple[int, ...]:
     x_min = min([bbox[0], bbox[2]])
     x_max = max([bbox[0], bbox[2]])
     y_min = min([bbox[1], bbox[3]])
@@ -66,7 +66,29 @@ def xyxy2xywh(bbox: Tuple[Union[int, float], ...]) -> Tuple[Union[int, float], .
     return x_min, y_min, x_max - x_min, y_max - y_min
 
 
-def draw_bbox(img: np.ndarray, bbox: Tuple[Union[int, float]]):
+def xywh2xyxy(bbox: Union[Tuple[int, ...], List[int]]) -> Tuple[int, ...]:
+    x1 = bbox[0]
+    y1 = bbox[1]
+    x2 = bbox[0] + bbox[2]
+    y2 = bbox[1] + bbox[3]
+    return x1, y1, x2, y2
+
+
+def center_from_xyxy(bbox: Union[Tuple[int, ...], List[int]]) -> Tuple[int, int]:
+    return (
+        round((bbox[0] + bbox[2]) / 2),
+        round((bbox[1] + bbox[3]) / 2),
+    )
+
+
+def center_from_xywh(bbox: Union[Tuple[int, ...], List[int]]) -> Tuple[int, int]:
+    return (
+        bbox[0] + round(bbox[2] / 2),
+        bbox[1] + round(bbox[3] / 2),
+    )
+
+
+def draw_bbox(img: np.ndarray, bbox: Union[List[Union[int, float]], Tuple[Union[int, float]]]):
     """
     Draw a bounding box on a cv2 image.
 
@@ -210,3 +232,25 @@ def nice_text(
     )
 
     return img
+
+
+def nice_line(
+        img: np.ndarray,
+        line: np.ndarray,
+        color: Tuple[int, int, int] = (255, 255, 255),
+        thickness: int = 4,
+) -> np.ndarray:
+    if thickness < 3:
+        logger.warning(f'Thickness must be >= 3. Actual value is {thickness}')
+        thickness = 3
+    img = cv2.polylines(img, [np.array(line[:-1], dtype=np.int32).reshape((-1, 1, 2))], False, (0, 0, 0), thickness)
+    img = cv2.polylines(img, [np.array(line[:-1], dtype=np.int32).reshape((-1, 1, 2))], False, color, thickness-2)
+    return img
+
+
+def distance(p1: Tuple[int, int], p2: Tuple[int, int]) -> Union[int, float]:
+    return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
+
+
+def array_distance(array1: np.ndarray, array2: np.ndarray):
+    return np.array(((array1[0, :] - array2[0, :])**2 + (array1[1, :] - array2[1, :])**2) ** 0.5)

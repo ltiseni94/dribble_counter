@@ -1,12 +1,24 @@
 import cv2
 import time
 import mediapipe as mp
+import numpy as np
 import csv
-from typing import Union, Optional
+from typing import Union, Optional, List, Dict
 from argparse import ArgumentParser
-from dribble_detector.utils import FpsCounter, logger, draw_bbox, calc_accuracy, create_bounding_box, nice_text
+from dribble_detector.utils import (
+    FpsCounter,
+    logger,
+    draw_bbox,
+    calc_accuracy,
+    create_bounding_box,
+    nice_text,
+    nice_line,
+    center_from_xywh,
+    xywh2xyxy,
+)
 from dribble_detector.hsv_tracker import HsvTracker
-from dribble_detector.counter import ReboundCounter
+from dribble_detector.counter import ReboundCounter, make_label_csv_line
+from check_trajectory import DrawTrajectory
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -54,6 +66,8 @@ def parse_args():
                         help='Stop frame for a second when a bounce is detected')
     parser.add_argument('--record-output', action='store_true', default=False,
                         help='Save output video in mp4 format')
+    parser.add_argument('--save-label-file', '--save', action='store_true', default=False,
+                        help='Save label file')
     return parser.parse_args()
 
 
@@ -90,20 +104,22 @@ def main():
 
     source: Union[str, int] = args.source
     if not source.isnumeric():
-        label_file = args.source.rstrip(args.source.split('.')[-1]) + 'csv'
+        root_name = args.source.rstrip(f'.{args.source.split(".")[-1]}')
+        label_file = root_name + '_label.csv'
         try:
             with open(label_file) as file:
-                reader = csv.reader(file)
+                reader = csv.DictReader(file)
                 for row in reader:
-                    for val in row:
-                        real_values_list.append(int(val))
+                    try:
+                        real_values_list.append(int(row['label']))
+                    except ValueError:
+                        pass
         except ValueError:
             logger.error(f'File {label_file} contains bad label values')
         except FileNotFoundError:
             logger.warn(f'Could not find {label_file}')
-        if args.source == 'resources/marcello.mp4':
-            args.resize = 3
     else:
+        root_name = source
         source = int(source)
 
     video = cv2.VideoCapture(source)
@@ -148,10 +164,14 @@ def main():
     num_iter = 0
     pause_frame = False
     fps_counter = FpsCounter()
+    csv_lines = []
 
     video_writer: Optional[cv2.VideoWriter] = None
     if args.record_output:
-        video_writer = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), frame_fps, (width, height))
+        video_writer = cv2.VideoWriter(f'{root_name}.mp4', cv2.VideoWriter_fourcc(*'mp4v'), frame_fps, (width, height))
+
+    trajectory_drawer: Optional[DrawTrajectory] = None
+    predicted_trajectory: List[Dict[str, int]] = []
 
     with mp_pose.Pose(
             model_complexity=0,
@@ -168,7 +188,6 @@ def main():
                 else:
                     logger.info('Processed all available frames')
                 break
-            num_iter += 1
             frame = cv2.resize(frame, (width, height))
 
             tracker_ok, bbox = tracker.update(frame)
@@ -184,17 +203,29 @@ def main():
             fps = fps_counter.update()
 
             if tracker_ok and results is not None:
+                x, y = center_from_xywh(bbox)
+                predicted_trajectory.append(dict(
+                    frame=num_iter,
+                    x=x,
+                    y=y,
+                ))
+                if trajectory_drawer is None:
+                    trajectory_drawer = DrawTrajectory()
+                trajectory_drawer.update(np.array(center_from_xywh(bbox), dtype=np.int32))
+                frame = nice_line(frame, trajectory_drawer.get_points())
                 frame = draw_bbox(frame, bbox)
                 is_bounce, label = reb.update(bbox, results)
                 if is_bounce:
-                    predictions_list.append(reb.label_converter[label])
+                    numeric_label = reb.numeric_value_from_label(label)
+                    predictions_list.append(numeric_label)
                     if args.pause:
                         frame = nice_text(
                             frame,
-                            f"{reb.label_dict[label]}",
+                            f"{label}",
                             position=(20, height - 50),
                         )
                         pause_frame = True
+                    csv_lines.append(make_label_csv_line(num_iter, xywh2xyxy(bbox), numeric_label))
             else:
                 frame = nice_text(
                     frame,
@@ -202,6 +233,7 @@ def main():
                     position=(20, 80),
                     color=(60, 60, 255),
                 )
+                trajectory_drawer = None
 
             # Draw results
             mp_drawing.draw_landmarks(
@@ -248,10 +280,27 @@ def main():
                 time.sleep(period - elapsed_time)
             except ValueError:
                 pass
+            num_iter += 1
 
         if args.record_output:
             video_writer.release()
         video.release()
+
+        if args.save_label_file:
+            with open(f'{root_name}_pred.csv', 'w') as pred_file:
+                csv_writer = csv.DictWriter(pred_file, fieldnames=(
+                    'frame', 'x1', 'y1', 'x2', 'y2', 'label'
+                ))
+                csv_writer.writeheader()
+                for line in csv_lines:
+                    csv_writer.writerow(line)
+            with open(f'{root_name}_traj.csv', 'w') as traj_file:
+                csv_writer = csv.DictWriter(traj_file, fieldnames=(
+                    'frame', 'x', 'y',
+                ))
+                csv_writer.writeheader()
+                for point in predicted_trajectory:
+                    csv_writer.writerow(point)
 
         logger.info(f'Run report:\n'
                     f'Processed {num_iter} frames\n'

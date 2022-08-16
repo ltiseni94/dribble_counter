@@ -10,6 +10,34 @@ from .utils import logger
 LandmarkEnum = mp.solutions.pose.PoseLandmark
 
 
+def make_label_csv_line(
+        frame: int,
+        bbox: Union[List[int], Tuple[int, ...]],
+        label: Optional[str] = None,
+) -> Dict[str, int]:
+    return dict(
+        frame=frame,
+        x1=bbox[0],
+        y1=bbox[1],
+        x2=bbox[2],
+        y2=bbox[3],
+        label=label,
+    )
+
+
+class Label:
+    GROUND = 'ground'
+    RIGHT_FOOT = 'right foot'
+    LEFT_FOOT = 'left foot'
+    RIGHT_HIP = 'right hip'
+    LEFT_HIP = 'left hip'
+    HEAD = 'head'
+
+    def __iter__(self):
+        return iter([self.GROUND, self.RIGHT_FOOT, self.RIGHT_HIP,
+                     self.LEFT_FOOT, self.LEFT_HIP, self.HEAD])
+
+
 class ReboundCounter:
     __slots__ = (
         '_queue_size',
@@ -25,40 +53,46 @@ class ReboundCounter:
         'rebounds',
     )
 
-    label_converter: Dict[str, int] = {
-        'ground': -1,
-        'r_ft': 0,
-        'l_ft': 1,
-        'r_hip': 2,
-        'l_hip': 3,
-        'head': 4,
+    label_converter: Dict[int, Optional[str]] = {
+        0: None,
+        1: Label.GROUND,
+        2: Label.RIGHT_FOOT,
+        3: Label.LEFT_FOOT,
+        4: Label.RIGHT_HIP,
+        5: Label.LEFT_HIP,
+        6: Label.HEAD,
+    }
+
+    value_converter: Dict[Optional[str], int] = {
+        v: k for k, v in label_converter.items()
     }
 
     label_scores: Dict[str, int] = {
-        'ground': -1,
-        'r_ft': 1,
-        'l_ft': 1,
-        'r_hip': 3,
-        'l_hip': 3,
-        'head': 5,
-    }
-
-    label_dict: Dict[str, str] = {
-        'ground': 'ground',
-        'r_ft': 'right foot',
-        'l_ft': 'left foot',
-        'r_hip': 'right hip',
-        'l_hip': 'left hip',
-        'head': 'head',
+        Label.GROUND: 0,
+        Label.RIGHT_FOOT: 1,
+        Label.LEFT_FOOT: 1,
+        Label.RIGHT_HIP: 3,
+        Label.LEFT_HIP: 3,
+        Label.HEAD: 5,
     }
 
     landmark_dict: Dict[str, List[int]] = {
-        'r_ft': [LandmarkEnum.RIGHT_FOOT_INDEX, LandmarkEnum.RIGHT_ANKLE],
-        'l_ft': [LandmarkEnum.LEFT_FOOT_INDEX, LandmarkEnum.LEFT_ANKLE],
-        'r_hip': [LandmarkEnum.RIGHT_KNEE, LandmarkEnum.RIGHT_HIP],
-        'l_hip': [LandmarkEnum.LEFT_KNEE, LandmarkEnum.LEFT_HIP],
-        'head': [LandmarkEnum.NOSE],
+        Label.RIGHT_FOOT: [LandmarkEnum.RIGHT_FOOT_INDEX, LandmarkEnum.RIGHT_ANKLE],
+        Label.LEFT_FOOT: [LandmarkEnum.LEFT_FOOT_INDEX, LandmarkEnum.LEFT_ANKLE],
+        Label.RIGHT_HIP: [LandmarkEnum.RIGHT_KNEE, LandmarkEnum.RIGHT_HIP],
+        Label.LEFT_HIP: [LandmarkEnum.LEFT_KNEE, LandmarkEnum.LEFT_HIP],
+        Label.HEAD: [LandmarkEnum.NOSE],
     }
+
+    @classmethod
+    def label_from_numeric_value(cls, value: int) -> Optional[str]:
+        return cls.label_converter[value]
+
+    @classmethod
+    def numeric_value_from_label(cls, label: str) -> int:
+        if label not in Label():
+            logger.warning(f'Label: {label} not recognized')
+        return cls.value_converter.get(label, 0)
 
     def __init__(self,
                  initial_bbox: Tuple[int, int, int, int],
@@ -71,7 +105,6 @@ class ReboundCounter:
                  lm_under_ball_threshold: int = -20,
                  ball_close_threshold: int = 80, ):
         """
-
         :param initial_bbox:
             Initial bounding box in xywh format
         :param img_shape:
@@ -97,7 +130,7 @@ class ReboundCounter:
         self._min_speed: Union[int, float] = min_speed
         self._img_width: int = img_shape[0]
         self._img_height: int = img_shape[1]
-        self.rebounds: Dict[str, int] = {label: 0 for label in self.label_converter}
+        self.rebounds: Dict[str, int] = {label: 0 for label in self.label_scores}
         self._pos_queue: Deque[Tuple[Union[int, float], Union[int, float]]] = deque(
             [(int(initial_bbox[0] + initial_bbox[2]/2), int(initial_bbox[1] + initial_bbox[3]/2))] * queue_size,
             maxlen=queue_size,
@@ -110,11 +143,11 @@ class ReboundCounter:
 
     def __repr__(self):
         res = ''
-        total = self.get_total() + self.rebounds['ground']
+        total = self.get_total() + self.rebounds[Label.GROUND]
         for label, count in self.rebounds.items():
-            tabs = '\t' * ((15 - len(self.label_dict[label])) // 8)
-            res += f'\n{self.label_dict[label]}:\t{tabs}{count:03d}' \
-                   f'\t{(self.rebounds[label]/total*100):03.1f}%'
+            tabs = '\t' * ((15 - len(label)) // 8)
+            res += f'\n{label}:\t{tabs}{count:3d}' \
+                   f'\t{(self.rebounds[label] / total * 100):4.1f}%'
         return f'Juggling summary:{res}'
 
     def __str__(self):
@@ -127,7 +160,7 @@ class ReboundCounter:
         :return:
             int Num of bounces
         """
-        return sum(self.rebounds.values()) - self.rebounds['ground']
+        return sum(self.rebounds.values()) - self.rebounds[Label.GROUND]
 
     def get_score(self) -> int:
         """
@@ -179,8 +212,8 @@ class ReboundCounter:
         if bounce:
             label = self._predict_rebound_label()
             self.rebounds[label] += 1
-            if label != 'ground':
-                logger.info(f'Detected dribble with {self.label_dict[label]}')
+            if label != Label.GROUND:
+                logger.info(f'Detected dribble with {label}')
             else:
                 logger.info(f'Ball fell on the ground')
         return bounce, label
@@ -189,7 +222,6 @@ class ReboundCounter:
                             mp_results: NamedTuple,
                             *landmarks) -> Tuple[Union[int, float], Union[int, float]]:
         """
-
         :param mp_results: mediapipe Pose result data structure.
         :param landmarks: landmarks to consider to calculate average position
         :return: landmark position (x, y) in the image.
@@ -290,4 +322,4 @@ class ReboundCounter:
         if len(res_dict.keys()) > 0:
             res = sorted(res_dict.items(), key=itemgetter(1))
             return res[0][0]
-        return 'ground'
+        return Label.GROUND
