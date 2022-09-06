@@ -57,6 +57,8 @@ def main(dataset: str):
             fp=fp,
             fn=fn,
             accuracy=round(100*acc, 2),
+            traj_error=round(float(np.mean(traj_error)), 2),
+            traj_len=len(traj_error),
         ))
 
         with open(f'{dataset}/results/{label_file[:-10]}_dribble.csv', 'w') as f:
@@ -66,7 +68,7 @@ def main(dataset: str):
                 writer.writerow({'true': res['label_data'], 'pred': res['pred_data']})
 
     with open(f'{dataset}/results/overall.csv', 'w') as f:
-        writer = csv.DictWriter(f, fieldnames=['file', 'tp', 'fp', 'fn', 'accuracy'])
+        writer = csv.DictWriter(f, fieldnames=['file', 'tp', 'fp', 'fn', 'accuracy', 'traj_error', 'traj_len'])
         writer.writeheader()
         for res in overall_results:
             writer.writerow(res)
