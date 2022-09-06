@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 import csv
 import cv2
 import argparse
@@ -39,17 +39,17 @@ def main(video: str, read: bool = False):
 
     frame_idx: int = 0
     temp_bbox: List[Tuple[int, int]] = []
-    bounding_boxes: List[Optional[Tuple[Union[int, float], ...]]] = [None] * len(frames)
+    bounding_boxes: List[Optional[Tuple[int, ...]]] = [None] * len(frames)
     dribble_labels: List[Optional[int]] = [None] * len(frames)
     try:
         with open(f'{video[:-4]}_label.csv', 'r') as f:
             csv_reader = csv.DictReader(f)
             for row in csv_reader:
                 idx = int(row['frame'])
-                x1 = float(row['x1'])
-                y1 = float(row['y1'])
-                x2 = float(row['x2'])
-                y2 = float(row['y2'])
+                x1 = int(row['x1'])
+                y1 = int(row['y1'])
+                x2 = int(row['x2'])
+                y2 = int(row['y2'])
                 dribble_labels[idx] = int(row['label']) if row['label'] else None
                 bounding_boxes[idx] = (x1, y1, x2, y2)
     except FileNotFoundError:

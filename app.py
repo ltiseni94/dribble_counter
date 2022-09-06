@@ -104,7 +104,7 @@ def main():
 
     source: Union[str, int] = args.source
     if not source.isnumeric():
-        root_name = args.source.rstrip(f'.{args.source.split(".")[-1]}')
+        root_name = args.source[:-4]
         label_file = root_name + '_label.csv'
         try:
             with open(label_file) as file:

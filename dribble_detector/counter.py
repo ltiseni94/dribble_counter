@@ -13,7 +13,7 @@ LandmarkEnum = mp.solutions.pose.PoseLandmark
 def make_label_csv_line(
         frame: int,
         bbox: Union[List[int], Tuple[int, ...]],
-        label: Optional[str] = None,
+        label: Optional[int] = None,
 ) -> Dict[str, int]:
     return dict(
         frame=frame,

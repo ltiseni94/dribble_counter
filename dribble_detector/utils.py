@@ -88,7 +88,7 @@ def center_from_xywh(bbox: Union[Tuple[int, ...], List[int]]) -> Tuple[int, int]
     )
 
 
-def draw_bbox(img: np.ndarray, bbox: Union[List[Union[int, float]], Tuple[Union[int, float]]]):
+def draw_bbox(img: np.ndarray, bbox: Union[List[Union[int, float]], Tuple[Union[int, float], ...]]):
     """
     Draw a bounding box on a cv2 image.
 

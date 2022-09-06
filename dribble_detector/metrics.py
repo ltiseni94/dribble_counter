@@ -111,18 +111,26 @@ def compare_pred_true(label_file: str, pred_file: str):
     for label_data in label:
         bounce_match = False
         label_match = False
+        predicted_label = None
         for pred_data in pred_copy:
             if 0 <= (pred_data[0] - label_data[0]) < 5:
-                if distance(pred_data[1:3], label_data[1:3]) < 50:
+                if distance(pred_data[1:3], label_data[1:3]) < 80:
                     pred_copy.remove(pred_data)
                     bounce_match = True
                     label_match = label_data[-1] == pred_data[-1]
-        results.append(dict(frame=label_data[0], bounce=bounce_match, label=label_match))
+                    predicted_label = pred_data[-1]
+        results.append(dict(
+            frame=label_data[0],
+            bounce=bounce_match,
+            label_data=label_data[-1],
+            pred_data=predicted_label,
+            label_match=label_match)
+        )
     bounce_true_positives = len(results)
     bounce_false_positives = len(pred_copy)
     bounce_false_negatives = len(label) - bounce_true_positives
-    dribble_accuracy = len([res for res in results if res['label']]) / bounce_true_positives
-    return bounce_true_positives, bounce_false_negatives, bounce_false_positives, dribble_accuracy
+    dribble_accuracy = len([res for res in results if res['label_match']]) / bounce_true_positives
+    return bounce_true_positives, bounce_false_negatives, bounce_false_positives, dribble_accuracy, results
 
 
 def compare_traj_true(label_file: str, traj_file: str):

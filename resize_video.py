@@ -7,13 +7,14 @@ def parse_args():
     parser.add_argument('source', type=str, help='Video to resize')
     parser.add_argument('--resize', '-r', type=int, default=2, help='Resize factor')
     parser.add_argument('--output', '-o', default=None, help='output path for new video')
+    parser.add_argument('--restrict-format', action='store_true', default=False, help='restrict input to mp4')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     source: str = args.source
-    if not source.endswith('.mp4'):
+    if not source.endswith('.mp4') and args.restrict_format:
         raise ValueError(f'Incompatible input format "{source[-4:]}". Expected ".mp4"')
     output: str = args.output
     if output is None:
