@@ -146,9 +146,15 @@ def compare_traj_true(label_file: str, traj_file: str):
     end_index = int(true_trajectory[0, -1])
     pred_trajectory = np.array([t, x, y], dtype=np.int32)
     pred_trajectory = pred_trajectory[:, (pred_trajectory[0, :] >= start_index) & (pred_trajectory[0, :] <= end_index)]
-    if not (len(pred_trajectory) == len(true_trajectory)):
-        raise ValueError('Trajectories have different length')
-    return array_distance(true_trajectory[1:], pred_trajectory[1:])
+    missed_frames = 0
+    indexes = []
+    for index in range(start_index, end_index + 1):
+        if index not in pred_trajectory[0, :]:
+            array_index = index - start_index
+            missed_frames += 1
+            indexes.append(array_index)
+    true_trajectory = np.delete(true_trajectory, indexes, axis=1)
+    return array_distance(true_trajectory[1:], pred_trajectory[1:]), missed_frames
 
 
 if __name__ == '__main__':

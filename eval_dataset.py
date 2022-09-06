@@ -55,15 +55,16 @@ def main(dataset: str):
 
     for label_file, pred_file, traj_file, fps_file in matched_files:
         tp, fn, fp, acc, results = compare_pred_true(f'{dataset}/{label_file}', f'{dataset}/{pred_file}')
-        traj_error = compare_traj_true(f'{dataset}/{label_file}', f'{dataset}/{traj_file}')
+        traj_error, missed_frames = compare_traj_true(f'{dataset}/{label_file}', f'{dataset}/{traj_file}')
         fps = get_fps_from_file(f'{dataset}/{fps_file}')
         print(
             f'Evaluated {label_file}:\t'
             f'Bounce TP: {tp:3d}\t'
             f'Bounce FP: {fp:3d}\t'
             f'Bounce FN: {fn:3d}\t'
-            f'Accuracy: {(100*acc):4.1f}%\t\t'
-            f'Trajectory error (avg): {np.mean(traj_error):5.2f}\t'
+            f'Accuracy: {(100*acc):5.1f}%\t'
+            f'Missed frames: {missed_frames:3d}\t'
+            f'Trajectory error (avg): {np.mean(traj_error):6.2f}\t'
             f'Frames: {len(traj_error):3d}\t'
             f'FPS: {fps:5.2f}'
         )

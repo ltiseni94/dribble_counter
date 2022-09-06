@@ -18,7 +18,7 @@ class HsvTracker:
         self.low_hsv: Optional[np.ndarray] = None
         self.high_hsv: Optional[np.ndarray] = None
         self.min_number_points: int = min_number_points
-        self.kernel: np.ndarray = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
+        self.kernel: np.ndarray = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
 
     def init(self, image: np.ndarray, bounding_box: Tuple[int, int, int, int]) -> bool:
         """
