@@ -126,7 +126,7 @@ def compare_pred_true(label_file: str, pred_file: str):
             pred_data=predicted_label,
             label_match=label_match)
         )
-    bounce_true_positives = len(results)
+    bounce_true_positives = len([res for res in results if res['bounce'] is True])
     bounce_false_positives = len(pred_copy)
     bounce_false_negatives = len(label) - bounce_true_positives
     dribble_accuracy = len([res for res in results if res['label_match']]) / bounce_true_positives

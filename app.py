@@ -302,10 +302,15 @@ def main():
                 for point in predicted_trajectory:
                     csv_writer.writerow(point)
 
+        mean_fps = sum(fps_counter.values)/len(fps_counter.values)
         logger.info(f'Run report:\n'
                     f'Processed {num_iter} frames\n'
                     f'Total bounces: {reb.get_total()}\n'
-                    f'Average FPS: {sum(fps_counter.values)/len(fps_counter.values):.2f}')
+                    f'Average FPS: {mean_fps:.2f}')
+
+        with open(f'{root_name}_fps.csv', 'w') as fps_file:
+            csv_writer = csv.writer(fps_file)
+            csv_writer.writerow([f'{round(mean_fps, 2)}'])
 
         logger.info(f'{reb}\n')
 
