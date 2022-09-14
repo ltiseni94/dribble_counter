@@ -1,0 +1,28 @@
+clear 
+close all
+clc
+
+dataset_path_csrt = '/Users/tommasobagneschi/PycharmProjects/pythonProject/shared/digital_perception_project/csrt_dataset';
+dataset_path_hsv = '/Users/tommasobagneschi/PycharmProjects/pythonProject/shared/digital_perception_project/hsv_dataset';
+addpath(dataset_path_csrt);
+addpath(dataset_path_hsv);
+
+%% processing list and load data
+
+label_list = getAllFiles(dataset_path_csrt,1,'_label.csv');
+pred_list = getAllFiles(dataset_path_csrt,1,'_pred.csv');
+traj_list = getAllFiles(dataset_path_csrt,1,'_traj.csv');
+fps_list = getAllFiles(dataset_path_csrt,1,'_fps.csv');
+dribble_list = getAllFiles(dataset_path_csrt,1,'_dribble.csv');
+
+for i = 1:length(label_list)
+    [label_filepath{i}, label_filename{i}, label_extension{i}] = fileparts(label_list{i});
+    [pred_filepath{i}, pred_filename{i}, pred_extension{i}] = fileparts(pred_list{i});
+    [traj_filepath{i}, traj_filename{i}, traj_extension{i}] = fileparts(traj_list{i});
+    [fps_filepath{i}, fps_filename{i}, fps_extension{i}] = fileparts(fps_list{i});
+    [dribble_filepath{i}, dribble_filename{i}, dribble_extension{i}] = fileparts(dribble_list{i});
+end
+
+%% load data
+
+T{1}=readtable(strcat(label_filename{1},'.csv'));
